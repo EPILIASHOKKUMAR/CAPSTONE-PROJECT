@@ -1,137 +1,61 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
 
-const useGeolocation = (options = {}) => {
+const useGeolocation = () => {
   const [location, setLocation] = useState(null);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const defaultOptions = {
-    enableHighAccuracy: true,
-    timeout: 10000,
-    maximumAge: 300000, // 5 minutes
-    ...options
-  };
+  const [error, setError] = useState(null);
 
   const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      const err = new Error('Geolocation is not supported by this browser');
-      setError(err);
-      toast.error('Geolocation is not supported by your browser');
-      return;
-    }
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        const error = new Error('Geolocation is not supported by this browser');
+        setError(error);
+        reject(error);
+        return;
+      }
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        setLocation({
-          lat: latitude,
-          lng: longitude,
-          accuracy,
-          timestamp: Date.now()
-        });
-        setLoading(false);
-        toast.success('Location obtained successfully');
-      },
-      (err) => {
-        let message = 'Failed to get location';
-        
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            message = 'Location access denied. Please enable location services.';
-            break;
-          case err.POSITION_UNAVAILABLE:
-            message = 'Location information is unavailable.';
-            break;
-          case err.TIMEOUT:
-            message = 'Location request timed out.';
-            break;
-          default:
-            message = 'An unknown error occurred while retrieving location.';
-            break;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: position.timestamp
+          };
+          setLocation(newLocation);
+          setLoading(false);
+          resolve(newLocation);
+        },
+        (error) => {
+          setError(error);
+          setLoading(false);
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
         }
-        
-        setError(err);
-        setLoading(false);
-        toast.error(message);
-      },
-      defaultOptions
-    );
+      );
+    });
   };
 
-  const watchLocation = () => {
-    if (!navigator.geolocation) {
-      const err = new Error('Geolocation is not supported by this browser');
-      setError(err);
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        setLocation({
-          lat: latitude,
-          lng: longitude,
-          accuracy,
-          timestamp: Date.now()
-        });
-        setLoading(false);
-      },
-      (err) => {
-        let message = 'Failed to watch location';
-        
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            message = 'Location access denied. Please enable location services.';
-            break;
-          case err.POSITION_UNAVAILABLE:
-            message = 'Location information is unavailable.';
-            break;
-          case err.TIMEOUT:
-            message = 'Location request timed out.';
-            break;
-          default:
-            message = 'An unknown error occurred while watching location.';
-            break;
-        }
-        
-        setError(err);
-        setLoading(false);
-        toast.error(message);
-      },
-      defaultOptions
-    );
-
-    return watchId;
-  };
-
-  const clearWatch = (watchId) => {
-    if (watchId && navigator.geolocation) {
-      navigator.geolocation.clearWatch(watchId);
-    }
-  };
-
-  // Auto-get location on mount if requested
+  // Auto-get location on mount (optional)
   useEffect(() => {
-    if (options.autoGet) {
-      getCurrentLocation();
-    }
+    // Uncomment if you want to auto-get location on component mount
+    // getCurrentLocation().catch(() => {
+    //   // Silently fail on auto-get
+    // });
   }, []);
 
   return {
     location,
-    error,
     loading,
-    getCurrentLocation,
-    watchLocation,
-    clearWatch,
-    isSupported: !!navigator.geolocation
+    error,
+    getCurrentLocation
   };
 };
 

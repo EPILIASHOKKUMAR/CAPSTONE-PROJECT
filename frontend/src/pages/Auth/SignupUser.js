@@ -86,7 +86,7 @@ const SignupUser = () => {
               <UserPlus className="w-8 h-8 text-white" />
             </motion.div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Join Civic Reporter
+              Join Civic Issues
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Create your account to start reporting civic issues

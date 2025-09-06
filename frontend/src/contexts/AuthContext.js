@@ -266,7 +266,7 @@ export const AuthProvider = ({ children }) => {
         payload: { user, tokens }
       });
 
-      toast.success(`Welcome to Civic Reporter, ${user.firstName}!`);
+      toast.success(`Welcome to Civic Issues, ${user.firstName}!`);
       return { success: true, user, role: user.role };
     } catch (error) {
       dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE });

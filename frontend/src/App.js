@@ -10,6 +10,11 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Pages
 import HomePage from './pages/HomePage';
+import AboutUs from './pages/AboutUs';
+import Contact from './pages/Contact';
+import Help from './pages/Help';
+import Status from './pages/Status';
+import Updates from './pages/Updates';
 import LoginUser from './pages/Auth/LoginUser';
 import SignupUser from './pages/Auth/SignupUser';
 import LoginAdmin from './pages/Auth/LoginAdmin';
@@ -23,6 +28,7 @@ import MapView from './pages/Admin/MapView';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
+import AIDetectionDemo from './pages/AIDetectionDemo';
 
 function App() {
   return (
@@ -36,6 +42,12 @@ function App() {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
+                <Route path="/ai-demo" element={<AIDetectionDemo />} />
+                <Route path="/about" element={<AboutUs />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/help" element={<Help />} />
+                <Route path="/status" element={<Status />} />
+                <Route path="/updates" element={<Updates />} />
                 <Route path="/login-user" element={<LoginUser />} />
                 <Route path="/signup-user" element={<SignupUser />} />
                 <Route path="/login-admin" element={<LoginAdmin />} />

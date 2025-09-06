@@ -33,19 +33,12 @@ const MapComponent = ({
   showRouting = false,
   onIssueSelect = () => {},
   clickable = false,
-  className = '',
-  // New props for manual location selection
-  center = null,
-  currentLocation = null,
-  onLocationChange = null,
-  onMapClick = null,
-  draggableMarker = false
+  className = ''
 }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
   const routingLayerRef = useRef(null);
-  const locationMarkerRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Initialize map
@@ -55,9 +48,8 @@ const MapComponent = ({
     console.log('🗺️ Initializing map...');
 
     // Create map instance
-    const defaultCenter = center || [40.7128, -74.0060]; // Use custom center or default to NYC
     const map = L.map(mapRef.current, {
-      center: defaultCenter,
+      center: [40.7128, -74.0060], // Default to NYC
       zoom: 13,
       zoomControl: true,
       scrollWheelZoom: true,
@@ -82,19 +74,6 @@ const MapComponent = ({
     mapInstanceRef.current = map;
     markersLayerRef.current = markersLayer;
     routingLayerRef.current = routingLayer;
-
-    // Add map click handler for manual location selection
-    if (clickable && (onMapClick || onLocationChange)) {
-      map.on('click', (e) => {
-        const { lat, lng } = e.latlng;
-        console.log('🎯 Map clicked at:', { lat, lng });
-        
-        // Call the callback functions
-        if (onMapClick) onMapClick({ lat, lng });
-        if (onLocationChange) onLocationChange({ lat, lng });
-      });
-      console.log('✅ Map click handler added for location selection');
-    }
 
     console.log('✅ Map initialized successfully');
     setMapReady(true);
@@ -180,21 +159,13 @@ const MapComponent = ({
 
   // Function to show route to issue
   const showRouteToIssue = (issueLat, issueLng) => {
-    console.log('🔍 ROUTE REQUEST RECEIVED');
-    console.log('📍 Admin Location Available:', !!adminLocation);
-    console.log('📍 Admin Location Data:', adminLocation);
-    console.log('🗺️ Routing Layer Available:', !!routingLayerRef.current);
-    
     if (!adminLocation || !routingLayerRef.current) {
       console.log('❌ Cannot show route: missing admin location or routing layer');
-      if (!adminLocation) {
-        console.log('⚠️ ADMIN LOCATION IS NULL - Please enable location first!');
-      }
       return;
     }
 
     console.log('🗺️ SHOWING BLUE ROUTE LINE');
-    console.log('📍 From Admin (CURRENT LOCATION):', adminLocation);
+    console.log('📍 From Admin:', adminLocation);
     console.log('📍 To Issue:', { lat: issueLat, lng: issueLng });
 
     // Clear existing routes
@@ -241,16 +212,7 @@ const MapComponent = ({
         iconSize: [25, 25],
         iconAnchor: [12, 12]
       })
-    }).bindPopup(`
-      <div style="text-align: center; font-weight: 600;">
-        <div style="color: #10B981; margin-bottom: 4px;">🚩 Your Current Location</div>
-        <div style="font-size: 12px; color: #6B7280;">Admin Position (GPS)</div>
-        <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">
-          Lat: ${adminLocation.lat.toFixed(6)}<br>
-          Lng: ${adminLocation.lng.toFixed(6)}
-        </div>
-      </div>
-    `);
+    }).bindPopup('🚩 Admin Location (Start)');
 
     routingLayerRef.current.addLayer(startMarker);
     console.log('✅ START MARKER ADDED');
@@ -329,74 +291,6 @@ const MapComponent = ({
     }
   }, [selectedIssue, showRouting, adminLocation, mapReady]);
 
-  // Handle manual location selection marker
-  useEffect(() => {
-    if (!mapReady || !markersLayerRef.current) return;
-
-    // Remove existing location marker
-    if (locationMarkerRef.current) {
-      markersLayerRef.current.removeLayer(locationMarkerRef.current);
-      locationMarkerRef.current = null;
-    }
-
-    // Add new location marker if currentLocation is set
-    if (currentLocation) {
-      console.log('📍 Adding manual location marker at:', currentLocation);
-      
-      const locationMarker = L.marker([currentLocation.lat, currentLocation.lng], {
-        icon: L.divIcon({
-          className: 'location-selection-marker',
-          html: `
-            <div style="
-              background: #3B82F6;
-              width: 30px;
-              height: 30px;
-              border-radius: 50%;
-              border: 4px solid white;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 16px;
-              cursor: ${draggableMarker ? 'move' : 'pointer'};
-            ">📍</div>
-          `,
-          iconSize: [30, 30],
-          iconAnchor: [15, 15]
-        }),
-        draggable: draggableMarker
-      });
-
-      locationMarker.bindPopup(`
-        <div style="text-align: center; font-weight: 600;">
-          <div style="color: #3B82F6; margin-bottom: 4px;">📍 Selected Location</div>
-          <div style="font-size: 11px; color: #9CA3AF; margin-top: 4px;">
-            Lat: ${currentLocation.lat.toFixed(6)}<br>
-            Lng: ${currentLocation.lng.toFixed(6)}
-          </div>
-          ${draggableMarker ? '<div style="font-size: 10px; color: #6B7280; margin-top: 4px;">Drag to adjust position</div>' : ''}
-        </div>
-      `);
-
-      // Handle marker drag if draggable
-      if (draggableMarker && onLocationChange) {
-        locationMarker.on('dragend', (e) => {
-          const { lat, lng } = e.target.getLatLng();
-          console.log('🎯 Location marker dragged to:', { lat, lng });
-          onLocationChange({ lat, lng });
-        });
-      }
-
-      markersLayerRef.current.addLayer(locationMarker);
-      locationMarkerRef.current = locationMarker;
-      
-      console.log('✅ Manual location marker added');
-
-      // Center map on the selected location
-      mapInstanceRef.current.setView([currentLocation.lat, currentLocation.lng], 15);
-    }
-  }, [currentLocation, mapReady, draggableMarker, onLocationChange]);
-
   return (
     <div className={`relative ${className}`}>
       <div
@@ -419,52 +313,10 @@ const MapComponent = ({
 
       {/* Routing info */}
       {showRouting && adminLocation && (
-        <div className="absolute top-4 right-4 bg-green-600 text-white rounded-lg shadow-lg p-3 z-[1000]">
+        <div className="absolute top-4 right-4 bg-blue-600 text-white rounded-lg shadow-lg p-3 z-[1000]">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Navigation className="w-4 h-4" />
-            <span>📍 Current Location Enabled</span>
-          </div>
-          <div className="text-xs opacity-90 mt-1">
-            Click issue to show route from your location
-          </div>
-        </div>
-      )}
-
-      {/* No location warning */}
-      {showRouting && !adminLocation && (
-        <div className="absolute top-4 right-4 bg-orange-600 text-white rounded-lg shadow-lg p-3 z-[1000]">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Navigation className="w-4 h-4" />
-            <span>⚠️ Location Required</span>
-          </div>
-          <div className="text-xs opacity-90 mt-1">
-            Enable location to show routes
-          </div>
-        </div>
-      )}
-
-      {/* Manual location selection instruction */}
-      {clickable && !currentLocation && !showRouting && (
-        <div className="absolute top-4 left-4 bg-blue-600 text-white rounded-lg shadow-lg p-3 z-[1000]">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <MapPin className="w-4 h-4" />
-            <span>🎯 Click to Select Location</span>
-          </div>
-          <div className="text-xs opacity-90 mt-1">
-            Click anywhere on the map to choose location
-          </div>
-        </div>
-      )}
-
-      {/* Selected location confirmation */}
-      {clickable && currentLocation && !showRouting && (
-        <div className="absolute top-4 left-4 bg-green-600 text-white rounded-lg shadow-lg p-3 z-[1000]">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <MapPin className="w-4 h-4" />
-            <span>✅ Location Selected</span>
-          </div>
-          <div className="text-xs opacity-90 mt-1">
-            {draggableMarker ? 'Drag marker to adjust position' : 'Click elsewhere to change location'}
+            <span>Click issue to show route</span>
           </div>
         </div>
       )}

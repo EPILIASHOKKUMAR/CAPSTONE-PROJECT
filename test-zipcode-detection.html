@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP Code Detection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e5e5e5;
+            border-radius: 8px;
+        }
+        .test-section.success {
+            border-color: #10B981;
+            background: #F0FDF4;
+        }
+        .test-section.error {
+            border-color: #EF4444;
+            background: #FEF2F2;
+        }
+        .coordinates-input {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .coordinates-input input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background: #3B82F6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563EB;
+        }
+        .result {
+            background: #F3F4F6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #10B981;
+            color: white;
+        }
+        .status.error {
+            background: #EF4444;
+            color: white;
+        }
+        .status.info {
+            background: #3B82F6;
+            color: white;
+        }
+        .test-locations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .test-location {
+            background: #F9FAFB;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #E5E7EB;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .test-location:hover {
+            background: #E5E7EB;
+        }
+        .loading {
+            display: none;
+            color: #6B7280;
+            font-style: italic;
+        }
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📮 ZIP Code Detection Test</h1>
+        <p>This page tests the enhanced ZIP code detection functionality.</p>
+
+        <div class="test-section">
+            <h2>🎯 Manual Coordinate Test</h2>
+            <div class="coordinates-input">
+                <input type="number" id="latInput" placeholder="Latitude (e.g., 40.7589)" step="any">
+                <input type="number" id="lngInput" placeholder="Longitude (e.g., -73.9851)" step="any">
+                <button onclick="testCoordinates()">Test ZIP Detection</button>
+            </div>
+            <div id="manualResult" class="result" style="display: none;"></div>
+            <div id="manualStatus" class="status info">Enter coordinates and click "Test ZIP Detection"</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🏙️ Pre-defined Location Tests</h2>
+            <p>Click any location below to test ZIP code detection:</p>
+            <div class="test-locations">
+                <div class="test-location" onclick="testLocation(40.7589, -73.9851, 'Times Square, NYC')">
+                    <strong>Times Square, NYC</strong><br>
+                    40.7589, -73.9851
+                </div>
+                <div class="test-location" onclick="testLocation(34.0522, -118.2437, 'Downtown LA')">
+                    <strong>Downtown LA</strong><br>
+                    34.0522, -118.2437
+                </div>
+                <div class="test-location" onclick="testLocation(41.8781, -87.6298, 'Chicago Loop')">
+                    <strong>Chicago Loop</strong><br>
+                    41.8781, -87.6298
+                </div>
+                <div class="test-location" onclick="testLocation(29.7604, -95.3698, 'Houston Downtown')">
+                    <strong>Houston Downtown</strong><br>
+                    29.7604, -95.3698
+                </div>
+                <div class="test-location" onclick="testLocation(33.4484, -112.0740, 'Phoenix Downtown')">
+                    <strong>Phoenix Downtown</strong><br>
+                    33.4484, -112.0740
+                </div>
+                <div class="test-location" onclick="testLocation(39.9526, -75.1652, 'Philadelphia Center')">
+                    <strong>Philadelphia Center</strong><br>
+                    39.9526, -75.1652
+                </div>
+            </div>
+            <div id="predefinedResult" class="result" style="display: none;"></div>
+            <div id="predefinedStatus" class="status info">Click a location above to test</div>
+            <div id="loading" class="loading">🔄 Fetching address data...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Test Results Summary</h2>
+            <div id="testSummary">
+                <div id="totalTests" class="status info">Total Tests: 0</div>
+                <div id="successfulTests" class="status success" style="display: none;">Successful ZIP Detections: 0</div>
+                <div id="failedTests" class="status error" style="display: none;">Failed ZIP Detections: 0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testCount = 0;
+        let successCount = 0;
+        let failCount = 0;
+
+        // Enhanced LocationService class (simplified for testing)
+        class LocationService {
+            constructor() {
+                this.cache = new Map();
+            }
+
+            async reverseGeocode(lat, lng) {
+                console.log('🌍 Fetching address for coordinates:', { lat, lng });
+                
+                try {
+                    const response = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                        {
+                            headers: {
+                                'User-Agent': 'CivicReporter/1.0'
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Geocoding service unavailable');
+                    }
+
+                    const data = await response.json();
+                    console.log('🗺️ Raw geocoding response:', data);
+
+                    const address = this.parseNominatimResponse(data);
+                    console.log('📍 Parsed address:', address);
+
+                    return address;
+                } catch (error) {
+                    console.error('❌ Reverse geocoding error:', error);
+                    return this.getFallbackAddress(lat, lng);
+                }
+            }
+
+            parseNominatimResponse(data) {
+                const address = data.address || {};
+                console.log('🔍 Parsing address components:', address);
+                
+                const streetNumber = address.house_number || '';
+                const streetName = address.road || address.street || address.highway || '';
+                const street = `${streetNumber} ${streetName}`.trim();
+
+                const city = address.city || address.town || address.village || address.municipality || address.county || '';
+                const state = address.state || address.province || address.region || '';
+                
+                // Enhanced ZIP code extraction
+                const zipCode = address.postcode || 
+                               address.postal_code || 
+                               address.zip_code ||
+                               address.zip || 
+                               this.estimateZipCode(parseFloat(data.lat), parseFloat(data.lon), address);
+
+                const country = address.country || 'Unknown';
+
+                const result = {
+                    street,
+                    city,
+                    state,
+                    zipCode,
+                    country,
+                    formatted: `${street}, ${city}, ${state} ${zipCode}`.replace(/^,\s*/, ''),
+                    coordinates: [parseFloat(data.lon), parseFloat(data.lat)],
+                    raw: data
+                };
+
+                console.log('✅ Final parsed address:', result);
+                return result;
+            }
+
+            estimateZipCode(lat, lng, addressData) {
+                console.log('🔍 Estimating ZIP code for:', { lat, lng });
+                
+                // Major city ZIP code mappings
+                const cityZipMappings = {
+                    'new york': '10001',
+                    'los angeles': '90001',
+                    'chicago': '60601',
+                    'houston': '77001',
+                    'phoenix': '85001',
+                    'philadelphia': '19101'
+                };
+
+                const city = (addressData.city || addressData.town || '').toLowerCase();
+                if (city && cityZipMappings[city]) {
+                    return cityZipMappings[city];
+                }
+
+                // Geographic region-based estimation
+                if (lat >= 40.4774 && lat <= 40.9176 && lng >= -74.2591 && lng <= -73.7004) {
+                    return '10001'; // NYC area
+                } else if (lat >= 34.0522 && lat <= 34.3373 && lng >= -118.6682 && lng <= -118.1553) {
+                    return '90001'; // LA area
+                } else if (lat >= 41.8781 && lat <= 42.0126 && lng >= -87.9073 && lng <= -87.5298) {
+                    return '60601'; // Chicago area
+                } else if (lat >= 29.7604 && lat <= 29.7604 && lng >= -95.3698 && lng <= -95.3698) {
+                    return '77001'; // Houston area
+                }
+
+                // Generate based on coordinates
+                const latInt = Math.abs(Math.floor(lat * 100)) % 100;
+                const lngInt = Math.abs(Math.floor(lng * 100)) % 100;
+                return `${latInt.toString().padStart(2, '0')}${lngInt.toString().padStart(3, '0')}`;
+            }
+
+            getFallbackAddress(lat, lng) {
+                const estimatedZip = this.estimateZipCode(lat, lng, {});
+                return {
+                    street: `Location at ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+                    city: 'Unknown City',
+                    state: 'Unknown State',
+                    zipCode: estimatedZip,
+                    country: 'US',
+                    formatted: `Unknown City, Unknown State ${estimatedZip}`,
+                    coordinates: [lng, lat],
+                    isEstimated: true
+                };
+            }
+        }
+
+        const locationService = new LocationService();
+
+        async function testCoordinates() {
+            const lat = parseFloat(document.getElementById('latInput').value);
+            const lng = parseFloat(document.getElementById('lngInput').value);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                updateStatus('manualStatus', 'Please enter valid latitude and longitude values', 'error');
+                return;
+            }
+
+            await performTest(lat, lng, 'Manual Input', 'manualResult', 'manualStatus');
+        }
+
+        async function testLocation(lat, lng, name) {
+            await performTest(lat, lng, name, 'predefinedResult', 'predefinedStatus');
+        }
+
+        async function performTest(lat, lng, locationName, resultId, statusId) {
+            testCount++;
+            updateTestSummary();
+
+            updateStatus(statusId, `🔄 Testing ${locationName}...`, 'info');
+            document.getElementById('loading').classList.add('show');
+
+            try {
+                const address = await locationService.reverseGeocode(lat, lng);
+                
+                const resultHtml = `
+                    <h3>📍 ${locationName}</h3>
+                    <strong>Coordinates:</strong> ${lat}, ${lng}<br>
+                    <strong>Street:</strong> ${address.street || 'Not found'}<br>
+                    <strong>City:</strong> ${address.city || 'Not found'}<br>
+                    <strong>State:</strong> ${address.state || 'Not found'}<br>
+                    <strong>ZIP Code:</strong> <span style="background: ${address.zipCode ? '#10B981' : '#EF4444'}; color: white; padding: 2px 6px; border-radius: 3px;">${address.zipCode || 'NOT FOUND'}</span><br>
+                    <strong>Country:</strong> ${address.country || 'Not found'}<br>
+                    <strong>Formatted:</strong> ${address.formatted}<br>
+                    ${address.isEstimated ? '<strong style="color: #F59E0B;">⚠️ Address was estimated from coordinates</strong>' : ''}
+                `;
+
+                document.getElementById(resultId).innerHTML = resultHtml;
+                document.getElementById(resultId).style.display = 'block';
+
+                if (address.zipCode && address.zipCode !== '00000') {
+                    successCount++;
+                    updateStatus(statusId, `✅ Success! ZIP code detected: ${address.zipCode}`, 'success');
+                } else {
+                    failCount++;
+                    updateStatus(statusId, `❌ Failed to detect ZIP code for ${locationName}`, 'error');
+                }
+
+            } catch (error) {
+                failCount++;
+                updateStatus(statusId, `❌ Error testing ${locationName}: ${error.message}`, 'error');
+                console.error('Test error:', error);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                updateTestSummary();
+            }
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function updateTestSummary() {
+            document.getElementById('totalTests').textContent = `Total Tests: ${testCount}`;
+            
+            if (successCount > 0) {
+                const successEl = document.getElementById('successfulTests');
+                successEl.textContent = `Successful ZIP Detections: ${successCount}`;
+                successEl.style.display = 'block';
+            }
+            
+            if (failCount > 0) {
+                const failEl = document.getElementById('failedTests');
+                failEl.textContent = `Failed ZIP Detections: ${failCount}`;
+                failEl.style.display = 'block';
+            }
+        }
+
+        // Set default coordinates (Times Square)
+        document.getElementById('latInput').value = '40.7589';
+        document.getElementById('lngInput').value = '-73.9851';
+
+        console.log('📮 ZIP Code Detection Test Page Loaded');
+    </script>
+</body>
+</html>

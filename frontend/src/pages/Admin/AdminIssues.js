@@ -16,7 +16,10 @@ import {
   RefreshCw,
   MessageSquare,
   Download,
-  Plus
+  Plus,
+  Navigation,
+  Route,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../../components/UI/Button';
@@ -27,9 +30,12 @@ import Modal from '../../components/UI/Modal';
 import MapComponent from '../../components/Map/MapComponent';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { getDirectionsToIssue, getRoutingOptions, calculateDistance, formatDistance } from '../../services/routingService';
+import useGeolocation from '../../hooks/useGeolocation';
 
 const AdminIssues = () => {
   const { user } = useAuth();
+  const { location: adminLocation, getCurrentLocation } = useGeolocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [issues, setIssues] = useState([]);
   const [filteredIssues, setFilteredIssues] = useState([]);
@@ -44,6 +50,7 @@ const AdminIssues = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showMapModal, setShowMapModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showRoutingModal, setShowRoutingModal] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [updateData, setUpdateData] = useState({
     status: '',
@@ -272,6 +279,37 @@ const AdminIssues = () => {
     toast.success('Issues exported successfully');
   };
 
+  const handleGetDirections = async (issue) => {
+    try {
+      await getDirectionsToIssue(issue, true);
+      toast.success('Opening directions in Google Maps...');
+    } catch (error) {
+      console.error('Error getting directions:', error);
+      toast.error('Failed to get directions: ' + error.message);
+    }
+  };
+
+  const handleShowRoutingOptions = (issue) => {
+    setSelectedIssue(issue);
+    setShowRoutingModal(true);
+  };
+
+  const getIssueDistance = (issue) => {
+    if (!adminLocation || !issue.location || !issue.location.coordinates) {
+      return null;
+    }
+    
+    const [issueLng, issueLat] = issue.location.coordinates;
+    const distance = calculateDistance(
+      adminLocation.lat, 
+      adminLocation.lng, 
+      issueLat, 
+      issueLng
+    );
+    
+    return formatDistance(distance);
+  };
+
   const IssueCard = ({ issue, isGridView = false }) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -311,6 +349,11 @@ const AdminIssues = () => {
                     <MapPin className="w-3 h-3 mr-1" />
                     <span className="truncate">
                       {issue.address?.city || 'Location not available'}
+                      {getIssueDistance(issue) && (
+                        <span className="ml-1 text-blue-600 dark:text-blue-400">
+                          ({getIssueDistance(issue)})
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="flex items-center">
@@ -340,6 +383,18 @@ const AdminIssues = () => {
               )}
 
               <div className="flex items-center space-x-2">
+                {/* Routing Button */}
+                {issue.location && issue.location.coordinates && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleGetDirections(issue)}
+                    title="Get directions to this issue"
+                  >
+                    <Navigation className="w-4 h-4 mr-1" />
+                    {isGridView ? '' : 'Directions'}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -401,6 +456,25 @@ const AdminIssues = () => {
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex items-center space-x-4">
+              {/* Location Status */}
+              <div className="flex items-center space-x-2">
+                {adminLocation ? (
+                  <div className="flex items-center text-sm text-green-600 dark:text-green-400">
+                    <Navigation className="w-4 h-4 mr-1" />
+                    <span>Location enabled</span>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={getCurrentLocation}
+                    variant="ghost"
+                    size="sm"
+                    leftIcon={Navigation}
+                    title="Enable location for distance calculations and routing"
+                  >
+                    Enable Location
+                  </Button>
+                )}
+              </div>
               <Button
                 onClick={refreshIssues}
                 isLoading={refreshing}
@@ -670,20 +744,265 @@ const AdminIssues = () => {
         {/* Map Modal */}
         <Modal
           isOpen={showMapModal}
-          onClose={() => setShowMapModal(false)}
-          title="Issues Map View"
+          onClose={() => {
+            setShowMapModal(false);
+            setSelectedIssue(null); // Clear selection when closing
+          }}
+          title={selectedIssue ? `Route to: ${selectedIssue.title}` : "Issues Map View"}
           size="xl"
         >
-          <MapComponent
-            height="500px"
-            issues={filteredIssues}
-            selectedIssue={selectedIssue}
-            onIssueSelect={(issue) => {
-              setSelectedIssue(issue);
-              setShowMapModal(false);
-              window.open(`/issue/${issue._id}`, '_blank');
-            }}
-          />
+          <div className="space-y-4">
+            {/* Route Information */}
+            {selectedIssue && adminLocation && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                      <Navigation className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        Route to Issue Location
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        📍 {selectedIssue.address?.formatted || 'Address not available'}
+                      </p>
+                      <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                        🚗 Calculating route... (Real-time road directions)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const lat = selectedIssue.location.coordinates[1];
+                        const lng = selectedIssue.location.coordinates[0];
+                        window.open(`https://www.google.com/maps/dir/${adminLocation.lat},${adminLocation.lng}/${lat},${lng}`, '_blank');
+                      }}
+                    >
+                      Open in Google Maps
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedIssue(null)}
+                    >
+                      Clear Route
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Instructions */}
+            {!selectedIssue && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <MapPin className="w-4 h-4" />
+                  <span>Click on any issue marker to see the route from your location</span>
+                </div>
+              </div>
+            )}
+
+            {/* Map and Route Directions */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Map */}
+              <div className="lg:col-span-2">
+                <MapComponent
+                  height="500px"
+                  issues={filteredIssues}
+                  selectedIssue={selectedIssue}
+                  adminLocation={adminLocation}
+                  showRouting={true}
+                  onIssueSelect={(issue) => {
+                    setSelectedIssue(issue);
+                    toast.success(`🗺️ Calculating route to: ${issue.title}`);
+                  }}
+                />
+              </div>
+
+              {/* Route Directions Panel */}
+              {selectedIssue && (
+                <div className="lg:col-span-1">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-[500px] overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                      <h3 className="font-semibold text-gray-900 dark:text-white flex items-center">
+                        <Navigation className="w-5 h-5 mr-2 text-blue-600" />
+                        Route Directions
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Turn-by-turn navigation
+                      </p>
+                    </div>
+                    
+                    <div className="p-4 space-y-4 overflow-y-auto h-[calc(500px-80px)]">
+                      {/* Issue Details */}
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                          🎯 Destination
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {selectedIssue.title}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          {selectedIssue.address?.formatted || 'Address not available'}
+                        </p>
+                      </div>
+
+                      {/* Route Summary */}
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                        <h4 className="font-medium text-gray-900 dark:text-white text-sm flex items-center">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                          Route Summary
+                        </h4>
+                        <div className="mt-2 space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Distance:</span>
+                            <span className="font-medium text-gray-900 dark:text-white" id="route-distance">
+                              Calculating...
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+                            <span className="font-medium text-gray-900 dark:text-white" id="route-duration">
+                              Calculating...
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Turn-by-turn directions */}
+                      <div>
+                        <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-3">
+                          📋 Directions
+                        </h4>
+                        <div id="route-steps" className="space-y-2">
+                          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                            <div className="w-6 h-6 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center mr-3">
+                              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">1</span>
+                            </div>
+                            <span>Calculating turn-by-turn directions...</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quick Actions */}
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="grid grid-cols-1 gap-2">
+                          <Button
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              const lat = selectedIssue.location.coordinates[1];
+                              const lng = selectedIssue.location.coordinates[0];
+                              window.open(`https://www.google.com/maps/dir/${adminLocation.lat},${adminLocation.lng}/${lat},${lng}`, '_blank');
+                            }}
+                          >
+                            🗺️ Open in Google Maps
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              const lat = selectedIssue.location.coordinates[1];
+                              const lng = selectedIssue.location.coordinates[0];
+                              window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`, '_blank');
+                            }}
+                          >
+                            🚗 Open in Waze
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${selectedIssue.location.coordinates[1]}, ${selectedIssue.location.coordinates[0]}`);
+                              toast.success('📋 Coordinates copied to clipboard');
+                            }}
+                          >
+                            📋 Copy Coordinates
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+
+        {/* Routing Options Modal */}
+        <Modal
+          isOpen={showRoutingModal}
+          onClose={() => setShowRoutingModal(false)}
+          title="Get Directions"
+          size="md"
+        >
+          {selectedIssue && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  {selectedIssue.title}
+                </h3>
+                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  <span>{selectedIssue.address?.formatted || 'Address not available'}</span>
+                </div>
+                {getIssueDistance(selectedIssue) && (
+                  <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
+                    <Route className="w-4 h-4 mr-1" />
+                    <span>Distance: {getIssueDistance(selectedIssue)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">Choose Navigation App:</h4>
+                
+                {getRoutingOptions(selectedIssue).map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={async () => {
+                      try {
+                        const result = await option.action();
+                        if (result) {
+                          toast.success(result);
+                        }
+                        setShowRoutingModal(false);
+                      } catch (error) {
+                        toast.error('Failed to open navigation: ' + error.message);
+                      }
+                    }}
+                    className="w-full flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <span className="text-2xl mr-3">{option.icon}</span>
+                    <div className="text-left">
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {option.name}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {option.description}
+                      </div>
+                    </div>
+                    <ExternalLink className="w-4 h-4 ml-auto text-gray-400" />
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRoutingModal(false)}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </Modal>
       </div>
     </div>

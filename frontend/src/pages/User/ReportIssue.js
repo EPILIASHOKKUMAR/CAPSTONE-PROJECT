@@ -15,7 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Button from '../../components/UI/Button';
 import Input from '../../components/UI/Input';
 import Card from '../../components/UI/Card';
-import ImageUpload from '../../components/UI/ImageUpload';
+import EnhancedImageUpload from '../../components/UI/EnhancedImageUpload';
 import MapComponent from '../../components/Map/MapComponent';
 import useGeolocation from '../../hooks/useGeolocation';
 import { reverseGeocode } from '../../services/locationService';
@@ -55,7 +55,19 @@ const ReportIssue = () => {
   const [addressLoading, setAddressLoading] = useState(false);
   const [autoAddress, setAutoAddress] = useState(null);
   
-  const { location, loading: locationLoading, getCurrentLocation } = useGeolocation();
+  const { location, loading: locationLoading, error: locationError, getCurrentLocation: getLocation } = useGeolocation();
+
+  // Enhanced getCurrentLocation with better user feedback
+  const getCurrentLocation = async () => {
+    try {
+      toast.loading('Getting your location...', { id: 'location-loading' });
+      await getLocation();
+      toast.dismiss('location-loading');
+    } catch (error) {
+      toast.dismiss('location-loading');
+      // Error handling is done in the useEffect above
+    }
+  };
 
   const {
     register,
@@ -102,36 +114,88 @@ const ReportIssue = () => {
         lng: location.lng
       });
       fetchAddressFromCoordinates(location.lat, location.lng);
+      // Show success message
+      toast.success('📍 Location detected successfully!');
     }
   }, [location]);
+
+  // Handle location errors
+  useEffect(() => {
+    if (locationError) {
+      let errorMessage = 'Failed to get your location. ';
+      
+      switch (locationError.code) {
+        case 1: // PERMISSION_DENIED
+          errorMessage += 'Please allow location access in your browser settings.';
+          break;
+        case 2: // POSITION_UNAVAILABLE
+          errorMessage += 'Location information is unavailable.';
+          break;
+        case 3: // TIMEOUT
+          errorMessage += 'Location request timed out. Please try again.';
+          break;
+        default:
+          errorMessage += 'Please try selecting location manually on the map.';
+      }
+      
+      toast.error(errorMessage);
+    }
+  }, [locationError]);
 
   const fetchAddressFromCoordinates = async (lat, lng) => {
     try {
       setAddressLoading(true);
+      console.log('🌍 Fetching address for coordinates:', { lat, lng });
+      
       const address = await reverseGeocode(lat, lng);
       setAutoAddress(address);
       
-      // Auto-fill form fields
-      setValue('address.street', address.street || '');
-      setValue('address.city', address.city || '');
-      setValue('address.state', address.state || '');
-      setValue('address.zipCode', address.zipCode || '');
+      console.log('📍 Received address data:', address);
       
-      toast.success('Address automatically detected!');
+      // Auto-fill form fields with enhanced validation
+      setValue('address.street', address.street || `Location at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      setValue('address.city', address.city || 'Unknown City');
+      setValue('address.state', address.state || 'Unknown State');
+      setValue('address.zipCode', address.zipCode || '00000');
+      
+      // Show appropriate success message
+      if (address.isEstimated) {
+        toast.success('📍 Location selected! Address estimated from coordinates.');
+      } else {
+        toast.success('📍 Address automatically detected!');
+      }
+      
+      // Log the final form values for debugging
+      console.log('✅ Form fields populated:', {
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zipCode: address.zipCode
+      });
+      
     } catch (error) {
-      console.error('Error fetching address:', error);
-      toast.error('Could not detect address from location');
+      console.error('❌ Error fetching address:', error);
+      
+      // Fallback: Set basic address info even if geocoding fails
+      setValue('address.street', `Location at ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      setValue('address.city', 'Unknown City');
+      setValue('address.state', 'Unknown State');
+      setValue('address.zipCode', '00000');
+      
+      toast.error('Could not detect address - using coordinates as fallback');
     } finally {
       setAddressLoading(false);
     }
   };
 
   const handleLocationSelect = (coordinates) => {
+    console.log('Location selected:', coordinates); // Debug log
     setSelectedLocation({
       lat: coordinates.lat,
       lng: coordinates.lng
     });
     fetchAddressFromCoordinates(coordinates.lat, coordinates.lng);
+    toast.success('📍 Location selected on map!');
   };
 
   const handleStepValidation = async (step) => {
@@ -262,7 +326,7 @@ const ReportIssue = () => {
             {/* Images + Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photos (optional)</label>
-              <ImageUpload
+              <EnhancedImageUpload
                 onImagesChange={setImages}
                 onAiDescription={(text) => {
                   const cleaned = String(text || '').trim().replace(/\s+/g, ' ');
@@ -350,38 +414,152 @@ const ReportIssue = () => {
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Location</h2>
-              <p className="text-gray-600 dark:text-gray-400">Pick the location of the issue and submit your report.</p>
+              <p className="text-gray-600 dark:text-gray-400">Choose the location where the issue is located.</p>
             </div>
 
-            {/* Get Current Location Button */}
-            <div className="flex gap-4">
-              <Button
-                type="button"
-                onClick={getCurrentLocation}
-                leftIcon={Navigation}
-                isLoading={locationLoading}
-                variant="outline"
-              >
-                Use Current Location
-              </Button>
-              {selectedLocation && (
-                <div className="flex items-center text-sm text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="w-4 h-4 mr-1" /> Location selected
+            {/* Prominent Current Location Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+                    <Navigation className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </div>
-              )}
+                
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Use Your Current Location
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Let us automatically detect your location for accurate issue reporting.
+                    <br />
+                    <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      📱 Make sure location services are enabled in your browser
+                    </span>
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  leftIcon={Navigation}
+                  isLoading={locationLoading}
+                  size="lg"
+                  className={`w-full sm:w-auto px-8 py-3 text-lg font-semibold transition-all duration-300 ${
+                    locationLoading 
+                      ? 'animate-pulse bg-blue-600 hover:bg-blue-700' 
+                      : 'hover:scale-105 hover:shadow-lg'
+                  }`}
+                  disabled={locationLoading}
+                >
+                  {locationLoading ? (
+                    <span className="flex items-center">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Detecting Location...
+                    </span>
+                  ) : (
+                    'Get My Current Location'
+                  )}
+                </Button>
+
+                {selectedLocation && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center space-y-2"
+                  >
+                    <div className="flex items-center justify-center text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                      <CheckCircle2 className="w-5 h-5 mr-2" />
+                      <span className="font-medium">Location detected successfully!</span>
+                    </div>
+                    {location && location.accuracy && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        📍 Accuracy: ±{Math.round(location.accuracy)}m
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+
+                {locationError && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center justify-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg p-3"
+                  >
+                    <span className="text-sm">{locationError}</span>
+                  </motion.div>
+                )}
+              </div>
             </div>
 
-            {/* Map */}
-            <div>
-              <MapComponent
-                height="300px"
-                center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : undefined}
-                currentLocation={selectedLocation}
-                onLocationChange={handleLocationSelect}
-                clickable={true}
-                onMapClick={handleLocationSelect}
-                draggableMarker={true}
-              />
+            {/* Alternative Option */}
+            <div className="text-center">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                    Or select location manually
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Location Selection */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+              <div className="mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                  Select Location on Map
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  🗺️ Click anywhere on the map to select the issue location. You can drag the marker to adjust.
+                </p>
+                {selectedLocation && (
+                  <div className="mt-2 text-sm text-green-600 dark:text-green-400 font-medium">
+                    ✅ Location selected: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                  </div>
+                )}
+                
+                {/* Debug: Test manual selection */}
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const testCoords = { lat: 40.7589, lng: -73.9851 }; // NYC coordinates
+                      handleLocationSelect(testCoords);
+                    }}
+                  >
+                    🧪 Test Manual Selection (NYC)
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <MapComponent
+                  height="350px"
+                  center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : undefined}
+                  currentLocation={selectedLocation}
+                  onLocationChange={handleLocationSelect}
+                  clickable={true}
+                  onMapClick={handleLocationSelect}
+                  draggableMarker={true}
+                  className="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600"
+                />
+                
+                {!selectedLocation && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 rounded-lg pointer-events-none">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg text-center">
+                      <MapPin className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        Click on the map to select location
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Address Fields */}
