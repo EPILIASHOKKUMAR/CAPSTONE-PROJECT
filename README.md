@@ -68,6 +68,7 @@ capstone/
 - ✅ Status tracking and filtering
 - ✅ Secure JWT authentication
 - ✅ Rate limiting and input validation
+- ✅ Red-Highlighted Detection Capability
 
 ## 🌐 API Endpoints
 
