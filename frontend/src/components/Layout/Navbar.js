@@ -94,7 +94,7 @@ const Navbar = () => {
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center h-20">
           {/* Enhanced Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
             <motion.div
@@ -106,7 +106,7 @@ const Navbar = () => {
               <img 
                 src={civicLogo} 
                 alt="Civic Issues Logo" 
-                className="w-10 h-10 rounded-full object-cover relative z-10"
+                className="w-12 h-12 rounded-full object-cover relative z-10"
               />
               <motion.div
                 className="absolute inset-0 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -116,15 +116,15 @@ const Navbar = () => {
               />
             </motion.div>
             <motion.span 
-              className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300"
-              whileHover={{ scale: 1.02 }}
+              className="text-2xl md:text-3xl font-extrabold tracking-wide bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300"
+              whileHover={{ scale: 1.03 }}
             >
               CIVIC ISSUES
             </motion.span>
           </Link>
 
-          {/* Enhanced Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2">
+          {/* Enhanced Desktop Navigation (centered) */}
+          <div className="hidden lg:flex items-center space-x-2 mx-auto">
             {navigationItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = isActivePath(item.href);
@@ -137,7 +137,7 @@ const Navbar = () => {
                 >
                   <Link
                     to={item.href}
-                    className={`group relative flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                    className={`group relative flex items-center space-x-3 px-6 py-3.5 rounded-xl text-lg font-semibold transition-all duration-300 ${
                       isActive
                         ? 'text-white shadow-lg transform scale-105'
                         : 'text-gray-700 hover:text-white dark:text-gray-300 dark:hover:text-white hover:scale-105'
@@ -154,7 +154,7 @@ const Navbar = () => {
                       whileHover={{ rotate: 5, scale: 1.1 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-5 h-5" />
                     </motion.div>
                     
                     {/* Text */}
@@ -210,27 +210,11 @@ const Navbar = () => {
             })}
           </div>
 
-          {/* ALL RIGHT SIDE ITEMS IN HORIZONTAL SEQUENCE */}
-          <div className="flex items-center space-x-3">
+          {/* ALL RIGHT SIDE ITEMS IN HORIZONTAL SEQUENCE (right-aligned) */}
+          <div className="flex items-center space-x-3 ml-auto">
             {/* For non-authenticated users: AI Demo + Theme + Sign In + Get Started */}
             {!isAuthenticated ? (
               <>
-                {/* AI Demo Button */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="hidden sm:block"
-                >
-                  <Link
-                    to="/ai-demo"
-                    className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"
-                  >
-                    <SparklesIcon className="w-4 h-4" />
-                    <span>Try AI Demo</span>
-                  </Link>
-                </motion.div>
-
                 {/* Theme Toggle */}
                 <motion.button
                   onClick={toggleTheme}
@@ -273,9 +257,9 @@ const Navbar = () => {
                 >
                   <Link
                     to="/login-user"
-                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
-                    <UserCircleIcon className="w-4 h-4" />
+                    <UserCircleIcon className="w-5 h-5" />
                     <span>Sign In</span>
                   </Link>
                 </motion.div>
@@ -289,9 +273,9 @@ const Navbar = () => {
                 >
                   <Link
                     to="/signup-user"
-                    className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white px-4 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
-                    <PlusCircleIcon className="w-4 h-4" />
+                    <PlusCircleIcon className="w-5 h-5" />
                     <span>Get Started</span>
                   </Link>
                 </motion.div>
@@ -505,14 +489,6 @@ const Navbar = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3, delay: navigationItems.length * 0.1 }}
                 >
-                  <Link
-                    to="/ai-demo"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold shadow-lg"
-                  >
-                    <SparklesIcon className="w-5 h-5" />
-                    <span>Try AI Demo</span>
-                  </Link>
                   <Link
                     to="/login-user"
                     onClick={() => setIsMobileMenuOpen(false)}

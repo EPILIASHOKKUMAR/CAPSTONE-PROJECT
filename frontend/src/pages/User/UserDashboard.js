@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
@@ -37,7 +37,7 @@ const UserDashboard = () => {
     fetchUserData();
   }, []);
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -46,7 +46,7 @@ const UserDashboard = () => {
       const userIssuesData = userIssuesResponse.data.data.issues;
       setUserIssues(userIssuesData);
 
-      // Calculate stats
+      // Calculate stats (GitHub version uses in_progress)
       const stats = userIssuesData.reduce((acc, issue) => {
         acc.total++;
         acc[issue.status] = (acc[issue.status] || 0) + 1;
@@ -68,7 +68,7 @@ const UserDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?._id]);
 
   const statCards = [
     {

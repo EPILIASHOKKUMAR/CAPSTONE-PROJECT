@@ -82,6 +82,7 @@ app.use('/api/issues', issueRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/ai', aiRoutes);
 
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({

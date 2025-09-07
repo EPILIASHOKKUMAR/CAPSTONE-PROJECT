@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { 
   MapPin, 
-  Camera, 
   FileText, 
-  AlertTriangle,
   CheckCircle2,
   Loader,
   Navigation
@@ -47,7 +45,7 @@ const PRIORITY_LEVELS = [
 
 const ReportIssue = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuth(); // kept if referenced in JSX; remove if truly unused
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -75,7 +73,6 @@ const ReportIssue = () => {
     formState: { errors },
     setValue,
     watch,
-    control,
     trigger
   } = useForm({
     defaultValues: {
@@ -142,7 +139,7 @@ const ReportIssue = () => {
     }
   }, [locationError]);
 
-  const fetchAddressFromCoordinates = async (lat, lng) => {
+  const fetchAddressFromCoordinates = useCallback(async (lat, lng) => {
     try {
       setAddressLoading(true);
       console.log('🌍 Fetching address for coordinates:', { lat, lng });
@@ -186,7 +183,7 @@ const ReportIssue = () => {
     } finally {
       setAddressLoading(false);
     }
-  };
+  }, [setValue]);
 
   const handleLocationSelect = (coordinates) => {
     console.log('Location selected:', coordinates); // Debug log
@@ -210,6 +207,9 @@ const ReportIssue = () => {
         if (!isValid) {
           toast.error('Please select a location for the issue');
         }
+        break;
+      default:
+        isValid = true;
         break;
     }
     
