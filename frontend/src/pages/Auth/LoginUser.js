@@ -11,6 +11,7 @@ import Card from '../../components/UI/Card';
 const LoginUser = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState('checking');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -21,10 +22,37 @@ const LoginUser = () => {
     setError
   } = useForm();
 
+  // Check API connectivity on mount
+  React.useEffect(() => {
+    const checkAPI = async () => {
+      try {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+        console.log('Checking API at:', apiUrl);
+        const response = await fetch(`${apiUrl}/health`);
+        if (response.ok) {
+          setApiStatus('connected');
+          console.log('API is reachable');
+        } else {
+          setApiStatus('error');
+          console.error('API returned error:', response.status);
+        }
+      } catch (error) {
+        setApiStatus('error');
+        console.error('API not reachable:', error);
+      }
+    };
+    checkAPI();
+  }, []);
+
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
+      console.log('Login attempt with:', data.email);
+      console.log('API URL:', process.env.REACT_APP_API_URL);
+      
       const result = await login(data.email, data.password, 'user');
+      
+      console.log('Login result:', result);
       
       if (result.success) {
         navigate('/dashboard');
@@ -32,6 +60,7 @@ const LoginUser = () => {
         setError('root', { message: result.error });
       }
     } catch (error) {
+      console.error('Login error:', error);
       setError('root', { message: 'Login failed. Please try again.' });
     } finally {
       setIsLoading(false);
@@ -63,6 +92,20 @@ const LoginUser = () => {
             <p className="text-gray-600 dark:text-gray-400">
               Sign in to report and track civic issues
             </p>
+            
+            {/* API Status Indicator */}
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs">
+              <div className={`w-2 h-2 rounded-full ${
+                apiStatus === 'connected' ? 'bg-green-500' : 
+                apiStatus === 'error' ? 'bg-red-500' : 
+                'bg-yellow-500 animate-pulse'
+              }`}></div>
+              <span className="text-gray-500 dark:text-gray-400">
+                {apiStatus === 'connected' ? 'Server Connected' : 
+                 apiStatus === 'error' ? 'Server Offline' : 
+                 'Checking Server...'}
+              </span>
+            </div>
           </div>
 
           {/* Form */}
