@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
   firstName: {
     type: String,
     required: [true, 'First name is required'],
@@ -10,7 +15,10 @@ const userSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: [true, 'Last name is required'],
+    required: function() {
+      // lastName is optional if user has googleId (Google OAuth)
+      return !this.googleId;
+    },
     trim: true,
     maxlength: [50, 'Last name cannot exceed 50 characters']
   },

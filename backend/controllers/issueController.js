@@ -587,36 +587,65 @@ const updateIssue = async (req, res) => {
       { path: 'adminNotes.addedBy', select: 'firstName lastName' }
     ]);
     
-    // Send email notification to the user if status changed and they have email notifications enabled
-    if (statusChanged && issue.reportedBy && issue.reportedBy.email) {
+    // Send email notification to the user if status changed OR admin note added
+    const shouldSendEmail = (statusChanged || (adminNote && adminNote.trim())) && issue.reportedBy && issue.reportedBy.email;
+    
+    if (shouldSendEmail) {
       try {
-        // Check if user has email notifications enabled
-        if (issue.reportedBy.preferences && issue.reportedBy.preferences.notifications.email) {
-          const statusMap = {
-            'new': 'New',
-            'in-progress': 'In Progress',
-            'resolved': 'Resolved',
-            'closed': 'Closed',
-            'reopened': 'Reopened'
-          };
-          
-          const formattedStatus = statusMap[status] || status;
-          const issueTitle = `Issue #${issue._id.toString().slice(-6)}`;
-          const issueUrl = `${process.env.FRONTEND_URL}/issues/${issue._id}`;
-          
-          await emailService.sendStatusUpdateNotification(
-            issue.reportedBy.email,
-            issue.reportedBy.firstName,
-            issueTitle,
-            formattedStatus,
-            req.body.statusNotes || '',
-            issueUrl
-          );
+        console.log('📧 Preparing to send email notification...');
+        console.log('Status changed:', statusChanged);
+        console.log('Admin note added:', !!(adminNote && adminNote.trim()));
+        console.log('User email:', issue.reportedBy.email);
+        
+        const statusMap = {
+          'new': 'New',
+          'in-progress': 'In Progress',
+          'resolved': 'Resolved',
+          'closed': 'Closed',
+          'reopened': 'Reopened'
+        };
+        
+        const formattedStatus = statusMap[issue.status] || issue.status;
+        const issueTitle = issue.title || `Issue #${issue._id.toString().slice(-6)}`;
+        const issueUrl = `${process.env.FRONTEND_URL}/issues/${issue._id}`;
+        
+        // Prepare email subject and content based on what changed
+        let emailSubject = '';
+        let emailNotes = '';
+        
+        if (statusChanged && adminNote && adminNote.trim()) {
+          // Both status and note changed
+          emailSubject = `Issue Status Update: ${issueTitle}`;
+          emailNotes = adminNote.trim();
+        } else if (statusChanged) {
+          // Only status changed
+          emailSubject = `Issue Status Update: ${issueTitle}`;
+          emailNotes = req.body.statusNotes || '';
+        } else if (adminNote && adminNote.trim()) {
+          // Only note added
+          emailSubject = `New Update on Your Issue: ${issueTitle}`;
+          emailNotes = adminNote.trim();
         }
+        
+        await emailService.sendStatusUpdateNotification(
+          issue.reportedBy.email,
+          issue.reportedBy.firstName,
+          issueTitle,
+          formattedStatus,
+          emailNotes,
+          issueUrl
+        );
+        
+        console.log(`✅ Status update email sent to ${issue.reportedBy.email}`);
       } catch (emailError) {
         // Log error but don't fail the request
-        console.error('Failed to send status update email:', emailError);
+        console.error('❌ Failed to send status update email:', emailError);
       }
+    } else {
+      console.log('ℹ️ No email sent - conditions not met');
+      console.log('Status changed:', statusChanged);
+      console.log('Admin note:', !!(adminNote && adminNote.trim()));
+      console.log('User email:', issue.reportedBy?.email);
     }
 
     res.json({

@@ -58,7 +58,6 @@ const Navbar = () => {
     { name: 'Home', href: '/', icon: HomeIcon, gradient: 'from-blue-500 to-purple-500' },
     { name: 'About Us', href: '/about', icon: InformationCircleIcon, gradient: 'from-green-500 to-teal-500' },
     { name: 'Contact', href: '/contact', icon: PhoneIcon, gradient: 'from-orange-500 to-red-500' },
-    { name: 'Help', href: '/help', icon: QuestionMarkCircleIcon, gradient: 'from-purple-500 to-pink-500' },
     { name: 'Status', href: '/status', icon: SignalIcon, gradient: 'from-indigo-500 to-blue-500' },
     { name: 'Updates', href: '/updates', icon: BellIcon, gradient: 'from-yellow-500 to-orange-500' },
   ];
@@ -75,7 +74,6 @@ const Navbar = () => {
           { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, gradient: 'from-blue-500 to-purple-500' },
           { name: 'Report Issue', href: '/report-issue', icon: PlusCircleIcon, gradient: 'from-green-500 to-teal-500' },
           { name: 'My Issues', href: '/my-issues', icon: ClipboardDocumentListIcon, gradient: 'from-orange-500 to-red-500' },
-          { name: 'Help', href: '/help', icon: QuestionMarkCircleIcon, gradient: 'from-purple-500 to-pink-500' },
         ]
     : publicNavigationItems;
 
@@ -198,7 +196,7 @@ const Navbar = () => {
           </Link>
 
           {/* Enhanced Desktop Navigation (centered) */}
-          <div className="hidden lg:flex items-center space-x-2 mx-auto">
+          <div className="hidden lg:flex items-center space-x-1 mx-auto">
             {navigationItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = isActivePath(item.href);
@@ -211,7 +209,7 @@ const Navbar = () => {
                 >
                   <Link
                     to={item.href}
-                    className={`group relative flex items-center space-x-3 px-6 py-3.5 rounded-xl text-lg font-semibold transition-all duration-300 ${
+                    className={`group relative flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
                       isActive
                         ? 'text-white shadow-lg transform scale-105'
                         : 'text-gray-700 hover:text-white dark:text-gray-300 dark:hover:text-white hover:scale-105'
@@ -228,7 +226,7 @@ const Navbar = () => {
                       whileHover={{ rotate: 5, scale: 1.1 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4" />
                     </motion.div>
                     
                     {/* Text */}

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const passport = require('passport');
 
 // Import controllers
 const {
@@ -46,6 +47,38 @@ router.post('/admin/login', validateUserLogin, (req, res, next) => {
   req.body.expectedRole = 'admin';
   next();
 }, login);
+
+// Google OAuth routes
+router.get('/google', passport.authenticate('google', {
+  scope: ['profile', 'email']
+}));
+
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/login-user?error=google_auth_failed` }),
+  async (req, res) => {
+    try {
+      // Generate JWT tokens for the authenticated user
+      const { generateTokenPair } = require('../utils/jwt');
+      const tokens = generateTokenPair(req.user._id, req.user.role);
+      
+      // Save refresh token
+      req.user.refreshTokens.push({
+        token: tokens.refreshToken,
+        expiresAt: tokens.refreshTokenExpires,
+        userAgent: req.get('User-Agent'),
+        ipAddress: req.ip
+      });
+      await req.user.save();
+      
+      // Redirect to frontend with tokens
+      const redirectUrl = `${process.env.FRONTEND_URL}/auth/google/success?token=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`;
+      res.redirect(redirectUrl);
+    } catch (error) {
+      console.error('Google callback error:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/login-user?error=auth_failed`);
+    }
+  }
+);
 
 // Protected routes (require authentication)
 router.use(authenticateToken);
