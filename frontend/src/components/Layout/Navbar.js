@@ -320,23 +320,22 @@ const Navbar = () => {
                   </AnimatePresence>
                 </motion.button>
 
-                {/* Sign In Button (same style as AI Demo) */}
+                {/* Sign In Button - Visible on all screens */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4 }}
-                  className="hidden sm:block"
                 >
                   <Link
                     to="/login-user"
-                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-4 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                    className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-sm sm:text-base font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
-                    <UserCircleIcon className="w-5 h-5" />
-                    <span>Sign In</span>
+                    <UserCircleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden xs:inline sm:inline">Sign In</span>
                   </Link>
                 </motion.div>
 
-                {/* Get Started Button (same style as AI Demo) */}
+                {/* Get Started Button - Hidden on mobile, visible on tablet+ */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
