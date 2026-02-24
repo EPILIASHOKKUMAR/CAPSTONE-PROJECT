@@ -486,7 +486,7 @@ const ReportIssue = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex items-center justify-center text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg p-3"
                   >
-                    <span className="text-sm">{locationError}</span>
+                    <span className="text-sm">{locationError.message || 'Failed to get location'}</span>
                   </motion.div>
                 )}
               </div>

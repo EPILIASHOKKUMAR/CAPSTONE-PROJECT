@@ -93,28 +93,102 @@ const Navbar = () => {
       {/* Gradient Border */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-20">
-          {/* Enhanced Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
+          {/* Enhanced Logo - Left Aligned with 1cm gap */}
+          <Link to="/" className="flex items-center space-x-4 group" style={{ marginLeft: '1cm' }}>
+            {/* Animated Circular Logo */}
             <motion.div
-              className="relative w-10 h-10 flex items-center justify-center"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
+              className="relative w-16 h-16 flex items-center justify-center"
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-              <img 
+              {/* Outer rotating ring with gradient */}
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: 'linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b)',
+                  padding: '3px',
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ 
+                  duration: 3, 
+                  repeat: Infinity, 
+                  ease: "linear" 
+                }}
+              >
+                <div className="w-full h-full bg-white dark:bg-gray-900 rounded-full"></div>
+              </motion.div>
+
+              {/* Middle pulsing glow */}
+              <motion.div
+                className="absolute inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-md"
+                animate={{ 
+                  opacity: [0.3, 0.6, 0.3],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+
+              {/* Logo image in center */}
+              <motion.img 
                 src={civicLogo} 
                 alt="Civic Issues Logo" 
-                className="w-12 h-12 rounded-full object-cover relative z-10"
+                className="w-12 h-12 rounded-full object-cover relative z-10 shadow-2xl"
+                animate={{ 
+                  rotate: [0, 360],
+                }}
+                transition={{ 
+                  duration: 8, 
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
               />
+
+              {/* Inner rotating particles */}
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1.5 h-1.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"
+                  style={{
+                    top: '50%',
+                    left: '50%',
+                  }}
+                  animate={{
+                    x: [0, Math.cos((i * Math.PI * 2) / 8) * 28],
+                    y: [0, Math.sin((i * Math.PI * 2) / 8) * 28],
+                    opacity: [0, 1, 0],
+                    scale: [0, 1, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: i * 0.25,
+                    ease: "easeInOut"
+                  }}
+                />
+              ))}
+
+              {/* Orbiting dots */}
               <motion.div
-                className="absolute inset-0 rounded-full border-2 border-transparent bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ padding: '2px' }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              />
+                className="absolute inset-0"
+                animate={{ rotate: -360 }}
+                transition={{ 
+                  duration: 4, 
+                  repeat: Infinity, 
+                  ease: "linear" 
+                }}
+              >
+                <div className="absolute top-0 left-1/2 w-2 h-2 bg-blue-500 rounded-full -translate-x-1/2 shadow-lg shadow-blue-500/50"></div>
+                <div className="absolute bottom-0 left-1/2 w-2 h-2 bg-purple-500 rounded-full -translate-x-1/2 shadow-lg shadow-purple-500/50"></div>
+              </motion.div>
             </motion.div>
+
+            {/* CIVIC ISSUES Text */}
             <motion.span 
               className="text-2xl md:text-3xl font-extrabold tracking-wide bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300"
               whileHover={{ scale: 1.03 }}

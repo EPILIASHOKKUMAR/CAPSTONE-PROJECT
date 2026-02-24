@@ -192,6 +192,17 @@ const createIssue = async (req, res) => {
     // Populate the response with user data
     await issue.populate('reportedBy', 'firstName lastName email');
     
+    // Send confirmation email to the user who submitted the issue
+    if (issue.reportedBy && issue.reportedBy.email && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      try {
+        await emailService.sendIssueSubmissionConfirmation(issue.reportedBy, issue);
+        console.log(`✅ Confirmation email sent to ${issue.reportedBy.email}`);
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+        // Don't let email failure stop issue creation
+      }
+    }
+    
     // Send notifications for high priority issues
     if (issue.priority === 'high' || issue.priority === 'critical') {
       try {

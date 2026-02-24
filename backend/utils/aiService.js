@@ -7,8 +7,6 @@ class AIService {
     this.geminiApiKey = process.env.GEMINI_API_KEY;
     this.openaiBaseUrl = 'https://api.openai.com/v1';
     this.geminiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
-    
-    // Determine which AI service to use
     this.activeService = this.geminiApiKey ? 'gemini' : (this.openaiApiKey ? 'openai' : null);
     console.log(`🤖 AI Service initialized: ${this.activeService || 'none'}`);
     
@@ -54,7 +52,7 @@ class AIService {
       const mimeType = imageResponse.headers['content-type'] || 'image/jpeg';
 
       const response = await axios.post(
-        `${this.geminiBaseUrl}/models/gemini-1.5-pro:generateContent?key=${this.geminiApiKey}`,
+        `${this.geminiBaseUrl}/models/gemini-2.5-flash:generateContent?key=${this.geminiApiKey}`,
         {
           contents: [{
             parts: [

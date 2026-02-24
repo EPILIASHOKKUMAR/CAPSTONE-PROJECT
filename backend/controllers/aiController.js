@@ -106,7 +106,7 @@ Respond in JSON format with these exact fields:
 }`;
 
     const response = await axios.post(
-      `${GEMINI_BASE_URL}/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `${GEMINI_BASE_URL}/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{
           parts: [
@@ -123,18 +123,30 @@ Respond in JSON format with these exact fields:
           temperature: 0.3,
           topK: 32,
           topP: 1,
-          maxOutputTokens: 500,
+          maxOutputTokens: 2048,
         }
       },
       {
         headers: {
           'Content-Type': 'application/json'
         },
-        timeout: 15000
+        timeout: 30000
       }
     );
 
-    const aiResponse = response.data.candidates[0]?.content?.parts[0]?.text;
+    // Check if response has valid candidates
+    const candidates = response.data?.candidates;
+    if (!candidates || candidates.length === 0) {
+      console.log('Gemini API returned no candidates:', JSON.stringify(response.data, null, 2));
+      throw new Error('No candidates in Gemini response');
+    }
+
+    const aiResponse = candidates[0]?.content?.parts?.[0]?.text;
+    
+    if (!aiResponse) {
+      console.log('Gemini API returned empty text:', JSON.stringify(candidates[0], null, 2));
+      throw new Error('Empty response from Gemini');
+    }
 
     try {
       // Clean the response - remove any markdown formatting or extra text
@@ -158,7 +170,7 @@ Respond in JSON format with these exact fields:
         keyFeatures: Array.isArray(analysisData.keyFeatures) ? analysisData.keyFeatures : [],
         source: 'gemini_vision',
         timestamp: new Date().toISOString(),
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         // Add user-friendly formatting
         severityText: getSeverityText(Math.min(Math.max(analysisData.severity || 1, 1), 5)),
         confidenceText: getConfidenceText(Math.min(Math.max(analysisData.confidence || 0.5, 0), 1)),
@@ -184,7 +196,7 @@ Respond in JSON format with these exact fields:
         keyFeatures: extractKeyFeaturesFromText(cleanText),
         source: 'gemini_vision_text',
         timestamp: new Date().toISOString(),
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         severityText: getSeverityText(extractSeverityFromText(cleanText)),
         confidenceText: getConfidenceText(0.7),
         categoryDescription: CIVIC_CATEGORIES[extractCategoryFromText(cleanText)] || CIVIC_CATEGORIES.other,
@@ -198,7 +210,10 @@ Respond in JSON format with these exact fields:
     }
 
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('Gemini API error:', error.message);
+    if (error.response?.data) {
+      console.error('Gemini API response data:', JSON.stringify(error.response.data, null, 2));
+    }
 
     // Provide a more helpful fallback based on file name or basic analysis
     const fallbackDescription = generateSmartFallback(filename, fileType);
@@ -262,14 +277,14 @@ const categorizeIssue = asyncHandler(async (req, res) => {
     `;
 
     const response = await axios.post(
-      `${GEMINI_BASE_URL}/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `${GEMINI_BASE_URL}/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.1,
           topK: 1,
           topP: 1,
-          maxOutputTokens: 300,
+          maxOutputTokens: 1024,
         }
       },
       {
@@ -356,14 +371,14 @@ const generateResolutionSuggestions = asyncHandler(async (req, res) => {
     `;
 
     const response = await axios.post(
-      `${GEMINI_BASE_URL}/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `${GEMINI_BASE_URL}/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.3,
           topK: 32,
           topP: 1,
-          maxOutputTokens: 400,
+          maxOutputTokens: 1024,
         }
       },
       {
@@ -427,7 +442,7 @@ const healthCheck = asyncHandler(async (req, res) => {
     try {
       // Quick test call to Gemini
       await axios.post(
-        `${GEMINI_BASE_URL}/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+        `${GEMINI_BASE_URL}/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
           contents: [{ parts: [{ text: "Test" }] }],
           generationConfig: { maxOutputTokens: 1 }
@@ -462,7 +477,7 @@ const getStats = asyncHandler(async (req, res) => {
     accuracy: 0.85,
     averageResponseTime: 2500, // milliseconds
     lastUpdate: new Date().toISOString(),
-    modelsAvailable: GEMINI_API_KEY ? ['gemini-2.0-flash-exp'] : [],
+    modelsAvailable: GEMINI_API_KEY ? ['gemini-2.5-flash'] : [],
     supportedFeatures: {
       imageAnalysis: !!GEMINI_API_KEY,
       categorization: true,
