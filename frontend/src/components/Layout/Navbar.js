@@ -581,10 +581,11 @@ const Navbar = () => {
         )}
       </AnimatePresence>
 
-      {/* Click outside to close menus */}
+      {/* Click outside to close menus - Behind navbar (z-40) but above page content */}
       {(isMobileMenuOpen || isProfileMenuOpen) && (
         <div
-          className="fixed inset-0 z-30"
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+          style={{ top: '80px' }}
           onClick={() => {
             setIsMobileMenuOpen(false);
             setIsProfileMenuOpen(false);
